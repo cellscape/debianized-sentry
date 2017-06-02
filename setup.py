@@ -86,6 +86,7 @@ project = dict(
         # 3rd party
         'sentry-ldap-auth==2.3',
         'sentry-kafka==1.1',
+        'sentry-phabricator==0.7.0',
     ],
     packages=[],
 )
