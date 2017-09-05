@@ -1,3 +1,9 @@
+sentry (8.14.1-2~stretch+custom1) stretch; urgency=medium
+
+  * Build for stretch
+
+ -- cellscape <user@debian>  Tue, 05 Aug 2017 01:00:55 +0200
+
 sentry (8.14.1-2~jessie+custom1) jessie; urgency=medium
 
   * Install sentry-phabricator plugin
