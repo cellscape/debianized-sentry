@@ -1,10 +1,8 @@
-# "sentry" Debian Packaging
+# "sentry.io" Debian Packaging
 
-![BSD 3-clause licensed](http://img.shields.io/badge/license-BSD_3--clause-red.svg)
-[![debianized-sentry](http://img.shields.io/pypi/v/debianized-sentry.svg)](https://pypi.python.org/pypi/debianized-sentry/)
-[![sentry](http://img.shields.io/pypi/v/sentry.svg)](https://pypi.python.org/pypi/sentry/)
-
-:traffic_light: **This works nicely in a test VM, but is not battle-hardened yet!**
+![BSD 3-clause licensed](https://img.shields.io/badge/license-BSD_3--clause-red.svg)
+[![debianized-sentry](https://img.shields.io/pypi/v/debianized-sentry.svg)](https://pypi.python.org/pypi/debianized-sentry/)
+[![sentry](https://img.shields.io/pypi/v/sentry.svg)](https://pypi.python.org/pypi/sentry/)
 
 :mag_right: Building the package was tested on *Ubuntu Xenial* and *Debian Jessie*, runtime tests were done on *Jessie*.
 
@@ -13,6 +11,8 @@
  * [What is this?](#what-is-this)
  * [How to build and install the package](#how-to-build-and-install-the-package)
  * [Trouble-Shooting](#trouble-shooting)
+   * ['pkg-resources not found' or similar during virtualenv creation](#pkg-resources-not-found-or-similar-during-virtualenv-creation)
+   * ['no such option: --no-binary' during package builds](#no-such-option---no-binary-during-package-builds)
  * [How to set up a simple "sentry" instance](#how-to-set-up-a-simple-sentry-instance)
    * [Basic Configuration](#basic-configuration)
    * [Database Setup](#database-setup)
@@ -21,6 +21,8 @@
    * [Changing the Service Unit Configuration](#changing-the-service-unit-configuration)
  * [Configuration Files](#configuration-files)
  * [Data Directories](#data-directories)
+ * [Release Notes](#release-notes)
+   * [Release 9.0.0 (rc1)](#release-900-rc1)
  * [References](#references)
    * [Related Projects](#related-projects)
    * [Plugin Projects](#plugin-projects)
@@ -37,6 +39,9 @@ by providing DEB packaging for the server component.
 This makes life-cycle management on production hosts a lot easier, and
 [avoids common drawbacks](https://nylas.com/blog/packaging-deploying-python/) of ‘from source’ installs,
 like needing build tools and direct internet access in production environments.
+
+> **A typical on-premise deployment with application data pushed from the Internet**
+> ![Sentry.io On-Premise Deployment Overview](https://raw.githubusercontent.com/1and1/debianized-sentry/master/docs/_static/img/sentry-deploy-800px.png)
 
 The Debian packaging metadata in
 [debian](https://github.com/1and1/debianized-sentry/tree/master/debian)
@@ -92,7 +97,7 @@ sudo dpkg -i /tmp/dh-virtualenv_1.0-1_all.deb
 
 sudo mk-build-deps --install debian/control
 dpkg-buildpackage -uc -us -b
-dpkg-deb -I ../sentry_*.deb
+dpkg-deb -I ../sentry.io_*.deb
 ```
 
 The resulting package, if all went well, can be found in the parent of your project directory.
@@ -103,7 +108,7 @@ for a hassle-free solution that works with *Artifactory* and *Bintray*.
 You can also install it directly on the build machine:
 
 ```sh
-sudo dpkg -i ../sentry_*.deb
+sudo dpkg -i ../sentry.io_*.deb
 /usr/bin/sentry --version  # ensure it basically works
 ```
 
@@ -131,6 +136,66 @@ sudo pip install -U pip virtualenv
 Then try building the package again.
 
 
+### 'no such option: --no-binary' during package builds
+
+This package needs a reasonably recent `pip` for building.
+On `Debian Jessie`, for the internal `pip` upgrade to work,
+that means you need a newer `pip` on the system,
+or else at least `dh-virtualenv 1.1` installed (as of this writing, that is *git HEAD*).
+
+To upgrade `pip` (which makes sense anyway, version 1.5.6 is ancient), call ``sudo pip install -U pip``.
+
+And to get `dh-virtualenv 1.1` right now on `Jessie`, you need to apply this patch *before* building it:
+
+```diff
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,9 @@
++dh-virtualenv (1.1-1~~dev1) unstable; urgency=medium
++
++  * Non-maintainer upload.
++
++ -- Juergen Hermann <jh@web.de>  Wed, 20 Jun 2018 10:22:32 +0000
++
+ dh-virtualenv (1.0-1) unstable; urgency=medium
+
+   * New upstream release
+--- a/debian/rules
++++ b/debian/rules
+@@ -1,7 +1,7 @@
+ #!/usr/bin/make -f
+
+ %:
+-       dh $@ --with python2 --with sphinxdoc
++       dh $@ --with python2
+
+ override_dh_auto_clean:
+        rm -rf doc/_build
+@@ -13,6 +13,3 @@ override_dh_auto_build:
+        rst2man doc/dh_virtualenv.1.rst > doc/dh_virtualenv.1
+        dh_auto_build
+
+-override_dh_installdocs:
+-       python setup.py build_sphinx
+-       dh_installdocs doc/_build/html
+
+--- a/setup.py
++++ b/setup.py
+@@ -25,7 +25,7 @@ from setuptools import setup
+
+ project = dict(
+     name='dh_virtualenv',
+-    version='1.0',
++    version='1.1.dev1',
+     author=u'Jyrki Pulliainen',
+     author_email='jyrki@spotify.com',
+     url='https://github.com/spotify/dh-virtualenv',
+```
+
+See [this ticket](https://github.com/spotify/dh-virtualenv/issues/234) for details,
+and hopefully for a resolution at the time you read this.
+
+
 ## How to set up a simple "sentry" instance
 
 After installing the package, follow the steps in
@@ -140,10 +205,25 @@ taking into account the differences as outlined below.
 
 ### Basic Configuration
 
-For a simple experimental installation on a single host, install these additional packages:
+In case you want to test the setup procedure in a Docker container,
+start one using ``docker run --rm -it -v $PWD/..:/data debian:8 bash``
+and then execute these commands:
 
 ```sh
-sudo apt-get install redis-server postgresql
+PKG=$(ls -rt1 /data/sentry.io_*~jessie_amd64.deb | tail -n1)
+apt-get update
+apt-get install sudo $(dpkg -I $PKG | egrep Depends: | cut -f2- -d: | sed -re 's/\([^)]+\),?|,//g')
+dpkg -i $PKG
+```
+
+Note that this assumes you built the ``sentry.io`` binary package before that,
+and called ``docker`` from the workdir of this project (otherwise adapt the volume mapping).
+
+For a simple experimental installation on a single host or in Docker,
+also install these additional packages for related services:
+
+```sh
+sudo apt-get install redis-server postgresql postgresql-contrib
 ```
 
 In the configuration, you need to at least generate a unique secret key, like this:
@@ -171,6 +251,8 @@ sudo -u postgres -- createuser sentry --pwprompt
 sudo -u postgres -- createdb -E utf-8 sentry
 echo "GRANT ALL PRIVILEGES ON DATABASE sentry TO sentry;" \
     | sudo -u postgres -- psql -d template1
+echo "ALTER ROLE sentry superuser;" \
+    | sudo -u postgres -- psql -d template1
 
 # Now change "PASSWORD" to the one you entered when creating the 'sentry' DB user!
 ${EDITOR:-vi} /etc/sentry/sentry.conf.py
@@ -181,12 +263,18 @@ sudo -u sentry SENTRY_CONF=/etc/sentry sentry upgrade
 #   Would you like to create a user account now? [Y/n]:
 #
 # Make this user a super user (admin), there is a prompt for that too.
+
+# Revoke temp. superuser privileges
+echo "ALTER ROLE sentry nosuperuser;" \
+    | sudo -u postgres -- psql -d template1
 ```
+See getsentry/sentry#6098 for details regarding the temporary superuser privileges.
 
 
 ### Starting Services
 
-Regarding services, you can ignore the *“Starting …”* as well as the *“Running Sentry as a Service”* sections.
+Regarding services, you can ignore the *“Starting …”* as well as the *“Running Sentry as a Service”* sections
+of Sentry.io's ‘on premise’ instructions.
 The package already contains the necessary ``systemd`` units, and starting all services is done via ``systemctl``:
 
 ```sh
@@ -221,7 +309,7 @@ If on the other hand you set ``SENTRY_AUTO_MIGRATE=true`` in ``/etc/default/sent
 then during package configuration the migration is performed.
 If it is successful, the services are started again.
 Details of the migration are logged to ``/var/log/sentry/upgrade-‹version›-‹timestamp›.log``.
-To re-try a failed migration, use ``dpkg-reconfigure sentry``.
+To re-try a failed migration, use ``dpkg-reconfigure sentry.io``.
 
 
 ### Changing the Service Unit Configuration
@@ -270,6 +358,28 @@ You should stick to these locations, because the maintainer scripts have special
 If you need to relocate, consider using symbolic links to point to the physical location.
 
 
+## Release Notes
+
+### Release 9.0.0 (rc1)
+
+General notes:
+
+* The build was tested under *Xenial* so far (and only very cursory).
+* ``psycopg2`` is installed from source, because the ``manylinux1`` wheel causes problems during ELF dynamic loading / linking.
+
+If you're upgrading to version 9, make sure you are using the right database engine setting
+in ``/etc/sentry.conf.py``:
+
+
+```py
+…
+DATABASES = {
+    'default': {
+        'ENGINE': 'sentry.db.postgres',
+…
+```
+
+
 ## References
 
 ### Related Projects
@@ -280,17 +390,18 @@ If you need to relocate, consider using symbolic links to point to the physical 
  * [clarkdave/logstash-sentry.rb](https://gist.github.com/clarkdave/edaab9be9eaa9bf1ee5f) – A Logstash output plugin to feed Sentry.
  * [Sentry for JIRA](https://marketplace.atlassian.com/plugins/sentry.io.jira_ac/cloud/overview) (Cloud only)
  * [Springerle/debianized-pypi-mold](https://github.com/Springerle/debianized-pypi-mold) – Cookiecutter to create this type of project.
+ * [c7n_sentry](https://github.com/capitalone/cloud-custodian/tree/master/tools/c7n_sentry) – Generic *Cloud Watch* log scanner /subscription that searches for tracebacks, extracts frames, and posts them to Sentry.
 
 
 ### Plugin Projects
 
 | Project | Version | Description |
 |:---|:---|:---|
-| [getsentry/sentry-plugins](https://github.com/getsentry/sentry-plugins#sentry-plugins) | [![sentry-plugins](http://img.shields.io/pypi/v/sentry-plugins.svg)](https://pypi.python.org/pypi/sentry-plugins/) | Official plugins by Sentry, includes GitHub and HipChat ones. |
-| [Banno/getsentry-ldap-auth](https://github.com/Banno/getsentry-ldap-auth) | [![sentry-ldap-auth](http://img.shields.io/pypi/v/sentry-ldap-auth.svg)](https://pypi.python.org/pypi/sentry-ldap-auth/) | Use LDAP as an authentication source. |
-| [Banno/getsentry-kafka](https://github.com/Banno/getsentry-kafka) | [![sentry-kafka](http://img.shields.io/pypi/v/sentry-kafka.svg)](https://pypi.python.org/pypi/sentry-kafka/) | Push events into Kafka topics. |
-| [simonpercivall/sentry-mailagain](https://github.com/simonpercivall/sentry-mailagain/) | [![](http://img.shields.io/pypi/v/sentry-mailagain.svg)](https://pypi.python.org/pypi/sentry-mailagain/) | Resend the mail notification on receiving new events in an unresolved group. |
-| [andialbrecht/sentry-responsible](https://github.com/andialbrecht/sentry-responsible) | [![](http://img.shields.io/pypi/v/sentry-responsible.svg)](https://pypi.python.org/pypi/sentry-responsible/) | This extension adds a widget on the sidebar of a event page to mark team members as being responsible for a event. |
-| [dmclain/sentry-export](https://github.com/dmclain/sentry-export) | [![](http://img.shields.io/pypi/v/sentry-export.svg)](https://pypi.python.org/pypi/sentry-export/) | Allow developers to export event data in self-service. |
-| [yoshiori/sentry-notify-github-issues](https://github.com/yoshiori/sentry-notify-github-issues) | [![sentry-notify-github-issues](http://img.shields.io/pypi/v/sentry-notify-github-issues.svg)](https://pypi.python.org/pypi/sentry-notify-github-issues/) | A notification plugin for GitHub issues. |
-| [gisce/sentry-irc](https://github.com/gisce/sentry-irc) | [![](http://img.shields.io/pypi/v/sentry-irc.svg)](https://pypi.python.org/pypi/sentry-irc/) | Send notifications to IRC channels. |
+| [getsentry/sentry-plugins](https://github.com/getsentry/sentry-plugins#sentry-plugins) | [![sentry-plugins](https://img.shields.io/pypi/v/sentry-plugins.svg)](https://pypi.python.org/pypi/sentry-plugins/) | Official plugins by Sentry, includes GitHub and HipChat ones. |
+| [Banno/getsentry-ldap-auth](https://github.com/Banno/getsentry-ldap-auth) | [![sentry-ldap-auth](https://img.shields.io/pypi/v/sentry-ldap-auth.svg)](https://pypi.python.org/pypi/sentry-ldap-auth/) | Use LDAP as an authentication source. |
+| [Banno/getsentry-kafka](https://github.com/Banno/getsentry-kafka) | [![sentry-kafka](https://img.shields.io/pypi/v/sentry-kafka.svg)](https://pypi.python.org/pypi/sentry-kafka/) | Push events into Kafka topics. |
+| [simonpercivall/sentry-mailagain](https://github.com/simonpercivall/sentry-mailagain/) | [![](https://img.shields.io/pypi/v/sentry-mailagain.svg)](https://pypi.python.org/pypi/sentry-mailagain/) | Resend the mail notification on receiving new events in an unresolved group. |
+| [andialbrecht/sentry-responsible](https://github.com/andialbrecht/sentry-responsible) | [![](https://img.shields.io/pypi/v/sentry-responsible.svg)](https://pypi.python.org/pypi/sentry-responsible/) | This extension adds a widget on the sidebar of a event page to mark team members as being responsible for a event. |
+| [dmclain/sentry-export](https://github.com/dmclain/sentry-export) | [![](https://img.shields.io/pypi/v/sentry-export.svg)](https://pypi.python.org/pypi/sentry-export/) | Allow developers to export event data in self-service. |
+| [yoshiori/sentry-notify-github-issues](https://github.com/yoshiori/sentry-notify-github-issues) | [![sentry-notify-github-issues](https://img.shields.io/pypi/v/sentry-notify-github-issues.svg)](https://pypi.python.org/pypi/sentry-notify-github-issues/) | A notification plugin for GitHub issues. |
+| [gisce/sentry-irc](https://github.com/gisce/sentry-irc) | [![](https://img.shields.io/pypi/v/sentry-irc.svg)](https://pypi.python.org/pypi/sentry-irc/) | Send notifications to IRC channels. |

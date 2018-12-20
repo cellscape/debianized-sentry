@@ -5,6 +5,7 @@
 
 set -e
 APP_ID="${DPKG_MAINTSCRIPT_PACKAGE:?DPKG_MAINTSCRIPT_PACKAGE is not set as it should be}"
+APP_ID="${APP_ID%.io}"
 RUN_AS="$APP_ID"
 
 . "/etc/default/$APP_ID"
@@ -55,10 +56,12 @@ case "$1" in
             adduser --quiet --system --ingroup daemon --no-create-home \
                     --home "/var/opt/$APP_ID" --shell /usr/sbin/nologin "$RUN_AS"
         fi
-        _sentry_auto_migrate "$2"
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    triggered)
     ;;
 
     *)
@@ -78,5 +81,10 @@ chgrp daemon /etc/"$APP_ID"/*
 
 # Data and log directory permissions
 chown -RPh "$RUN_AS".daemon /var/log/"$APP_ID"/. /var/opt/"$APP_ID"/.
+
+# Run upgrade / start service AFTER permissions etc. are fixed
+if [ "$1" = "configure" ]; then
+    _sentry_auto_migrate "$2"
+fi
 
 exit 0

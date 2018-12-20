@@ -1,6 +1,9 @@
 [Unit]
 Description=Sentry Cron Service
-After=network.target
+Documentation=https://sentry.io/
+Documentation=https://docs.sentry.io/server/cli/run/cron/
+Documentation=https://github.com/1and1/debianized-sentry#sentryio-debian-packaging
+After=syslog.target network.target
 
 [Service]
 Type=simple

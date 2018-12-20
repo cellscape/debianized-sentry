@@ -1,14 +1,61 @@
-sentry (8.14.1-2~stretch+custom1) stretch; urgency=medium
+sentry.io (9.0.0-2~stretch+custom1) stretch; urgency=medium
 
   * Build for stretch
-
- -- cellscape <user@debian>  Tue, 05 Aug 2017 01:00:55 +0200
-
-sentry (8.14.1-2~jessie+custom1) jessie; urgency=medium
-
   * Install sentry-phabricator plugin
 
- -- cellscape <user@debian>  Fri, 02 Jun 2017 08:00:55 +0200
+ -- cellscape <user@debian>  Thu, 20 Dec 2018 10:00:55 +0200
+
+sentry.io (9.0.0-2~stretch) xenial; urgency=medium
+
+  * postinst: Accept 'triggered' event
+
+ -- Juergen Hermann <jh@web.de>  Wed, 14 Nov 2018 11:30:44 +0100
+
+sentry.io (9.0.0-1~jessie) jessie; urgency=medium
+
+  * New upstream release
+  * https://github.com/getsentry/sentry/releases/tag/9.0.0
+
+ -- Juergen Hermann <jh@web.de>  Tue, 26 Jun 2018 11:18:09 +0200
+
+sentry.io (9.0.0-1~~rc1-jessie) jessie; urgency=low
+
+  * RC1: https://github.com/getsentry/sentry/releases/tag/9.0.0rc1
+
+ -- Juergen Hermann <jh@web.de>  Wed, 20 Jun 2018 11:43:41 +0200
+
+sentry.io (8.22.0-2~jessie) jessie; urgency=medium
+
+  * Fix: Keep old locations of crontab and default files
+  * Fix: Use "Suggests" for related services to avoid
+    default auto-install
+
+ -- Juergen Hermann <jh@web.de>  Thu, 21 Dec 2017 13:45:35 +0100
+
+sentry.io (8.22.0-1~jessie) jessie; urgency=medium
+
+  * UPDATE NOTICE: Make sure "postgresql-contrib" is
+    installed on your DB server machine
+  * UPDATE NOTICE: Take note of the following issue, either grant
+    (temporary) superuser privileges, or use the Puppet recipe.
+    .
+    https://github.com/getsentry/sentry/issues/6098
+  * Renaming package: Using "sentry.io" because of Apache/Sentry
+  * Upstream release 8.22.0
+  * https://github.com/getsentry/sentry/releases/tag/8.22.0
+  * https://docs.sentry.io/server/changelog/#version-8-22
+  * Plugin update: sentry-ldap-auth 2.5 (from 2.3)
+
+ -- Juergen Hermann <jh@web.de>  Wed, 20 Dec 2017 15:53:12 +0100
+
+sentry (8.18.0-1~jessie) jessie; urgency=medium
+
+  * Upstream release 8.18.0
+  * https://github.com/getsentry/sentry/releases/tag/8.18.0
+  * https://docs.sentry.io/server/changelog/#version-8-18
+
+ -- Juergen Hermann <jh@web.de>  Mon, 10 Jul 2017 12:24:13 +0200
+>>>>>>> master
 
 sentry (8.14.1-2~jessie) jessie; urgency=low
 
