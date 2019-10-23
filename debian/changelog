@@ -1,9 +1,28 @@
-sentry.io (9.0.0-2~stretch+custom1) stretch; urgency=medium
+sentry.io (9.1.2-2~stretch+custom1) buster; urgency=medium
 
-  * Build for stretch
+  * Build for buster
   * Install sentry-phabricator plugin
 
- -- cellscape <user@debian>  Thu, 20 Dec 2018 10:00:55 +0200
+ -- cellscape <user@debian>  Thu, 23 Oct 2019 07:07:30 +0200
+
+sentry.io (9.1.2-2~stretch) UNRELEASED; urgency=medium
+
+  * Force psycopg2 build from source
+
+ -- Juergen Hermann <jh@web.de>  Tue, 15 Oct 2019 11:00:15 +0200
+
+sentry.io (9.1.2-1~stretch) stretch; urgency=medium
+
+  * New upstream release
+
+ -- Juergen Hermann <jh@web.de>  Tue, 23 Jul 2019 10:25:33 +0200
+
+sentry.io (9.1.1-1~stretch) stretch; urgency=medium
+
+  * New upstream release
+
+ -- Juergen Hermann <jh@web.de>  Tue, 07 May 2019 15:39:05 +0200
+
 
 sentry.io (9.0.0-2~stretch) xenial; urgency=medium
 
